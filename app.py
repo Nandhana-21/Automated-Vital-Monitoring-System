@@ -50,7 +50,15 @@ def login():
 def dashboard():
     if "role" not in session:
         return redirect("/")
-    return render_template("dashboard_dynamic.html", role=session["role"])
+    
+    # Get user info based on role
+    user_info = {
+        "role": session["role"],
+        "name": "Dr. John Doe" if session["role"] == "hospital" else "Family Member",
+        "greeting": "Good Morning"
+    }
+    
+    return render_template("dashboard_dynamic.html", user=user_info)
 
 
 @app.route("/add_patient", methods=["POST"])

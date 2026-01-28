@@ -1,119 +1,325 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Dashboard – Vital Monitoring</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
 
-<div class="app-shell">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="brand">Smart Care</div>
+    <div class="app-shell">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">Smart Care</div>
 
-        <div class="welcome">
-            <div class="welcome-bg">
-                <p>Good Morning</p>
-                <h3>Dr. John Doe</h3>
-            </div>
-        </div>
-
-        <nav class="menu">
-            <a class="active">Dashboard</a>
-            <a>Patients</a>
-            <a>Calendar</a>
-            <a>Settings</a>
-            <a>Support</a>
-        </nav>
-
-        <a href="/logout" class="logout-side">Log Out</a>
-    </aside>
-
-    <!-- Main -->
-    <main class="main">
-        <!-- Top Bar -->
-        <div class="topbar">
-            <div class="search">
-                🔍 <input type="text" placeholder="Search patients here ...">
-            </div>
-            <div class="top-right">
-                🔔
-                <span class="user">Dr. John Doe ⌄</span>
-                <a href="/logout" class="logout-icon">⎋</a>
-            </div>
-        </div>
-
-        <!-- Content -->
-        <section class="content">
-            <div class="patient-header">
-                <div class="avatar"></div>
-                <div>
-                    <h2>Patient</h2>
-                    <h3 id="pname">—</h3>
+            <div class="welcome">
+                <div class="welcome-bg">
+                    <p>{{ user.greeting }}</p>
+                    <h3>{{ user.name }}</h3>
+                    <p style="font-size:12px; opacity:0.9; margin-top:5px;">
+                        {% if user.role == 'hospital' %}
+                        👨‍⚕️ Medical Professional
+                        {% else %}
+                        👨‍👩‍👧‍👦 Family Portal
+                        {% endif %}
+                    </p>
                 </div>
-                <button class="view-btn">VIEW PROFILE</button>
             </div>
 
-            <!-- Vitals Cards -->
-            <div class="cards-row" id="cards"></div>
+            <nav class="menu">
+                <a class="active">📊 Dashboard</a>
+                <a>👥 Patients</a>
+                {% if user.role == 'hospital' %}
+                <a>📅 Calendar</a>
+                <a>📋 Reports</a>
+                <a>⚙️ Settings</a>
+                {% else %}
+                <a>🔔 Alerts</a>
+                <a>📞 Contact Doctor</a>
+                {% endif %}
+                <a>❓ Support</a>
+            </nav>
 
-            <!-- Chart + ECG -->
-            <div class="charts-row">
-                <div class="bar-chart">
-                    <h4>Systolic Analysis</h4>
-                    <div class="bars">
-                        <div><span style="height:20%"></span><p>0-89</p></div>
-                        <div><span style="height:35%"></span><p>90-119</p></div>
-                        <div><span style="height:53%"></span><p>140-159</p></div>
-                        <div><span style="height:30%"></span><p>150+</p></div>
+            <a href="/logout" class="logout-side">🚪 Log Out</a>
+        </aside>
+
+        <!-- Main -->
+        <main class="main">
+            <!-- Top Bar -->
+            <div class="topbar">
+                <div class="search">
+                    🔍 <input type="text" placeholder="Search patients here ...">
+                </div>
+                <div class="top-right">
+                    <span class="notification-badge">🔔</span>
+                    <span class="user">{{ user.name }} ⌄</span>
+                    <a href="/logout" class="logout-icon">⎋</a>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <section class="content">
+                <!-- Hospital/Doctor View -->
+                {% if user.role == 'hospital' %}
+                <div class="section-header">
+                    <h2>Patient Management</h2>
+                    <button class="add-btn" onclick="toggleAddForm()">➕ Add New Patient</button>
+                </div>
+
+                <!-- Add Patient Form (Hidden by default) -->
+                <div id="addPatientForm" class="add-patient-form" style="display:none;">
+                    <h3>Add New Patient</h3>
+                    <form method="POST" action="/add_patient">
+                        <div class="form-row">
+                            <input type="text" name="name" placeholder="Patient Name" required>
+                            <input type="number" name="age" placeholder="Age" required>
+                            <select name="gender" required>
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <button type="submit" class="submit-btn">Add Patient</button>
+                            <button type="button" class="cancel-btn" onclick="toggleAddForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <h4>Total Patients</h4>
+                        <p class="stat-number" id="totalPatients">0</p>
+                    </div>
+                    <div class="stat-card danger-stat">
+                        <h4>Critical Alerts</h4>
+                        <p class="stat-number" id="criticalCount">0</p>
+                    </div>
+                    <div class="stat-card safe-stat">
+                        <h4>Stable Patients</h4>
+                        <p class="stat-number" id="stableCount">0</p>
                     </div>
                 </div>
 
-                <div class="ecg">
-                    <h4>ECG Data</h4>
-                    <div class="ecg-box">[ Live ECG Area ]</div>
+                <h3 style="margin: 20px 0 10px 0;">All Patients - Real-time Monitoring</h3>
+                <div class="patients-grid" id="patientsGrid"></div>
+
+                <!-- Family/Home View -->
+                {% else %}
+                <div class="family-header">
+                    <h2>👨‍👩‍👧‍👦 Family Health Monitor</h2>
+                    <p>Monitor your loved ones' vital signs in real-time</p>
                 </div>
-            </div>
-        </section>
-    </main>
-</div>
 
-<audio id="beep" loop>
-    <source src="/static/alert.mp3" type="audio/mpeg">
-</audio>
+                <div class="alert-banner" id="alertBanner" style="display:none;">
+                    <span class="alert-icon">⚠️</span>
+                    <span class="alert-text">CRITICAL: One or more patients need immediate attention!</span>
+                </div>
 
-<script>
-function loadPatients(){
-    fetch("/get_patients")
-      .then(r=>r.json())
-      .then(data=>{
-        const cards = document.getElementById("cards");
-        cards.innerHTML = "";
-        let danger=false;
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <h4>Monitored Patients</h4>
+                        <p class="stat-number" id="totalPatients">0</p>
+                    </div>
+                    <div class="stat-card danger-stat">
+                        <h4>⚠️ Need Attention</h4>
+                        <p class="stat-number" id="criticalCount">0</p>
+                    </div>
+                    <div class="stat-card safe-stat">
+                        <h4>✅ All Good</h4>
+                        <p class="stat-number" id="stableCount">0</p>
+                    </div>
+                </div>
 
-        if(data.length){
-            document.getElementById("pname").innerText = data[0].name;
+                <h3 style="margin: 20px 0 10px 0;">Patient Vital Signs</h3>
+                <div class="patients-grid" id="patientsGrid"></div>
+
+                <div class="info-section">
+                    <h4>📋 Understanding Vital Signs</h4>
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <strong>💓 Pulse Rate</strong>
+                            <p>Normal: 60-110 bpm</p>
+                        </div>
+                        <div class="info-card">
+                            <strong>🫁 SpO₂ (Oxygen)</strong>
+                            <p>Normal: 90% or above</p>
+                        </div>
+                        <div class="info-card">
+                            <strong>🌡️ Temperature</strong>
+                            <p>Normal: 35-38°C</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Charts Section (for Hospital only) -->
+                {% if user.role == 'hospital' %}
+                <div class="charts-row">
+                    <div class="bar-chart">
+                        <h4>Systolic Analysis</h4>
+                        <div class="bars">
+                            <div><span style="height:20%"></span>
+                                <p>0-89</p>
+                            </div>
+                            <div><span style="height:35%"></span>
+                                <p>90-119</p>
+                            </div>
+                            <div><span style="height:53%"></span>
+                                <p>140-159</p>
+                            </div>
+                            <div><span style="height:30%"></span>
+                                <p>150+</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ecg">
+                        <h4>ECG Data</h4>
+                        <div class="ecg-box">[ Live ECG Area ]</div>
+                    </div>
+                </div>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+
+    <audio id="beep" loop>
+        <source src="/static/alert.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const userRole = "{{ user.role }}";
+
+        function toggleAddForm() {
+            const form = document.getElementById("addPatientForm");
+            form.style.display = form.style.display === "none" ? "block" : "none";
         }
 
-        data.forEach(p=>{
-            if(p.danger) danger=true;
-            cards.innerHTML += `
-              <div class="vital-card ${p.danger?'danger':'safe'}">
-                <h5>${p.name}</h5>
-                <p>Pulse: ${p.Pulse} bpm</p>
-                <p>SpO₂: ${p.SpO2}%</p>
-                <p>Temp: ${p.Temperature} °C</p>
-              </div>`;
-        });
+        function loadPatients() {
+            fetch("/get_patients")
+                .then(r => r.json())
+                .then(data => {
+                    const grid = document.getElementById("patientsGrid");
+                    grid.innerHTML = "";
 
-        const beep = document.getElementById("beep");
-        if(danger) beep.play();
-        else beep.pause();
-      });
-}
-setInterval(loadPatients,3000);
-loadPatients();
-</script>
+                    let dangerCount = 0;
+                    let safeCount = 0;
+
+                    data.forEach(p => {
+                        if (p.danger) {
+                            dangerCount++;
+                        } else {
+                            safeCount++;
+                        }
+
+                        // Different card layouts for hospital vs family
+                        if (userRole === "hospital") {
+                            // Hospital view - compact with delete option
+                            grid.innerHTML += `
+                  <div class="patient-card ${p.danger ? 'danger' : 'safe'}">
+                    <div class="patient-card-header">
+                      <h4>${p.name}</h4>
+                      <a href="/delete_patient/${p.id}" class="delete-btn" onclick="return confirm('Delete ${p.name}?')">🗑️</a>
+                    </div>
+                    <div class="patient-info">
+                      <p><strong>Age:</strong> ${p.age} | <strong>Gender:</strong> ${p.gender}</p>
+                    </div>
+                    <div class="vitals-display">
+                      <div class="vital-item">
+                        <span class="vital-icon">💓</span>
+                        <div>
+                          <small>Pulse</small>
+                          <strong>${p.Pulse} bpm</strong>
+                        </div>
+                      </div>
+                      <div class="vital-item">
+                        <span class="vital-icon">🫁</span>
+                        <div>
+                          <small>SpO₂</small>
+                          <strong>${p.SpO2}%</strong>
+                        </div>
+                      </div>
+                      <div class="vital-item">
+                        <span class="vital-icon">🌡️</span>
+                        <div>
+                          <small>Temp</small>
+                          <strong>${p.Temperature}°C</strong>
+                        </div>
+                      </div>
+                    </div>
+                    ${p.danger ? '<div class="danger-badge">⚠️ CRITICAL</div>' : '<div class="safe-badge">✅ STABLE</div>'}
+                  </div>`;
+                        } else {
+                            // Family view - larger, more readable, no delete
+                            grid.innerHTML += `
+                  <div class="patient-card-family ${p.danger ? 'danger' : 'safe'}">
+                    <div class="patient-card-header">
+                      <h3>${p.name}</h3>
+                      ${p.danger ? '<span class="status-badge danger-badge">⚠️ NEEDS ATTENTION</span>' : '<span class="status-badge safe-badge">✅ ALL GOOD</span>'}
+                    </div>
+                    <div class="patient-info">
+                      <p>Age: ${p.age} years | ${p.gender}</p>
+                    </div>
+                    <div class="vitals-display-large">
+                      <div class="vital-box ${p.Pulse < 60 || p.Pulse > 110 ? 'vital-danger' : ''}">
+                        <span class="vital-icon-large">💓</span>
+                        <div class="vital-details">
+                          <small>Heart Rate</small>
+                          <h2>${p.Pulse}</h2>
+                          <small>bpm</small>
+                        </div>
+                      </div>
+                      <div class="vital-box ${p.SpO2 < 90 ? 'vital-danger' : ''}">
+                        <span class="vital-icon-large">🫁</span>
+                        <div class="vital-details">
+                          <small>Oxygen Level</small>
+                          <h2>${p.SpO2}</h2>
+                          <small>%</small>
+                        </div>
+                      </div>
+                      <div class="vital-box ${p.Temperature < 35 || p.Temperature > 38 ? 'vital-danger' : ''}">
+                        <span class="vital-icon-large">🌡️</span>
+                        <div class="vital-details">
+                          <small>Temperature</small>
+                          <h2>${p.Temperature}</h2>
+                          <small>°C</small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>`;
+                        }
+                    });
+
+                    // Update stats
+                    document.getElementById("totalPatients").innerText = data.length;
+                    document.getElementById("criticalCount").innerText = dangerCount;
+                    document.getElementById("stableCount").innerText = safeCount;
+
+                    // Show alert banner for family view
+                    if (userRole === "family") {
+                        const alertBanner = document.getElementById("alertBanner");
+                        if (dangerCount > 0) {
+                            alertBanner.style.display = "flex";
+                        } else {
+                            alertBanner.style.display = "none";
+                        }
+                    }
+
+                    // Audio alert
+                    const beep = document.getElementById("beep");
+                    if (dangerCount > 0) {
+                        beep.play();
+                    } else {
+                        beep.pause();
+                    }
+                });
+        }
+
+        setInterval(loadPatients, 3000);
+        loadPatients();
+    </script>
 
 </body>
+
 </html>
