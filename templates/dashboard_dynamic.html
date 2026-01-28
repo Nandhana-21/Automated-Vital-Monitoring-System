@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard – Vital Monitoring</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand">Smart Care</div>
+
+        <div class="welcome">
+            <div class="welcome-bg">
+                <p>Good Morning</p>
+                <h3>Dr. John Doe</h3>
+            </div>
+        </div>
+
+        <nav class="menu">
+            <a class="active">Dashboard</a>
+            <a>Patients</a>
+            <a>Calendar</a>
+            <a>Settings</a>
+            <a>Support</a>
+        </nav>
+
+        <a href="/logout" class="logout-side">Log Out</a>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+        <!-- Top Bar -->
+        <div class="topbar">
+            <div class="search">
+                🔍 <input type="text" placeholder="Search patients here ...">
+            </div>
+            <div class="top-right">
+                🔔
+                <span class="user">Dr. John Doe ⌄</span>
+                <a href="/logout" class="logout-icon">⎋</a>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <section class="content">
+            <div class="patient-header">
+                <div class="avatar"></div>
+                <div>
+                    <h2>Patient</h2>
+                    <h3 id="pname">—</h3>
+                </div>
+                <button class="view-btn">VIEW PROFILE</button>
+            </div>
+
+            <!-- Vitals Cards -->
+            <div class="cards-row" id="cards"></div>
+
+            <!-- Chart + ECG -->
+            <div class="charts-row">
+                <div class="bar-chart">
+                    <h4>Systolic Analysis</h4>
+                    <div class="bars">
+                        <div><span style="height:20%"></span><p>0-89</p></div>
+                        <div><span style="height:35%"></span><p>90-119</p></div>
+                        <div><span style="height:53%"></span><p>140-159</p></div>
+                        <div><span style="height:30%"></span><p>150+</p></div>
+                    </div>
+                </div>
+
+                <div class="ecg">
+                    <h4>ECG Data</h4>
+                    <div class="ecg-box">[ Live ECG Area ]</div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<audio id="beep" loop>
+    <source src="/static/alert.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+function loadPatients(){
+    fetch("/get_patients")
+      .then(r=>r.json())
+      .then(data=>{
+        const cards = document.getElementById("cards");
+        cards.innerHTML = "";
+        let danger=false;
+
+        if(data.length){
+            document.getElementById("pname").innerText = data[0].name;
+        }
+
+        data.forEach(p=>{
+            if(p.danger) danger=true;
+            cards.innerHTML += `
+              <div class="vital-card ${p.danger?'danger':'safe'}">
+                <h5>${p.name}</h5>
+                <p>Pulse: ${p.Pulse} bpm</p>
+                <p>SpO₂: ${p.SpO2}%</p>
+                <p>Temp: ${p.Temperature} °C</p>
+              </div>`;
+        });
+
+        const beep = document.getElementById("beep");
+        if(danger) beep.play();
+        else beep.pause();
+      });
+}
+setInterval(loadPatients,3000);
+loadPatients();
+</script>
+
+</body>
+</html>
