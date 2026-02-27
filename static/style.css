@@ -573,6 +573,30 @@
 }
 
 /* Status Badges */
+.critical-badge, .danger-badge {
+    background: #f44336;
+    color: white;
+}
+
+.warning-badge {
+    background: #ffa500;
+    color: white;
+}
+
+.normal-badge, .safe-badge {
+    background: #4CAF50;
+    color: white;
+}
+
+.patient-card.critical { border: 3px solid #f44336; }
+.patient-card.warning { border: 3px solid #ffa500; }
+.patient-card.normal { border: 3px solid #4CAF50; }
+
+.patient-card-family.critical { border: 4px solid #f44336; }
+.patient-card-family.warning { border: 4px solid #ffa500; }
+.patient-card-family.normal { border: 4px solid #4CAF50; }
+
+/* Existing Status Badges */
 .danger-badge {
     background: #f44336;
     color: white;
